@@ -4,6 +4,8 @@ set -Eeuo pipefail
 PGDATA=${PGDATA:-/var/lib/pgsql/data}
 export PGDATA
 
+install -d -o postgres -g postgres /run/postgresql
+
 initialized=false
 if [[ ! -s "$PGDATA/PG_VERSION" ]]; then
   install -d -o postgres -g postgres "$PGDATA"
@@ -14,8 +16,8 @@ if [[ ! -s "$PGDATA/PG_VERSION" ]]; then
   initialized=true
 fi
 
-runuser -u postgres -- /usr/bin/pg_ctl -D "$PGDATA" -w start \
-  -o "-c listen_addresses=127.0.0.1"
+runuser -u postgres -- /usr/bin/pg_ctl -D "$PGDATA" -l /dev/stderr -w start \
+  -o "-c listen_addresses=127.0.0.1 -c logging_collector=off"
 
 shutdown() {
   status=$?
