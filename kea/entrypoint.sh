@@ -6,7 +6,11 @@ export PGDATA
 
 initialized=false
 if [[ ! -s "$PGDATA/PG_VERSION" ]]; then
-  postgresql-setup --initdb
+  install -d -o postgres -g postgres "$PGDATA"
+  runuser -u postgres -- /usr/bin/initdb \
+    --pgdata="$PGDATA" \
+    --auth-local=peer \
+    --auth-host=scram-sha-256
   initialized=true
 fi
 

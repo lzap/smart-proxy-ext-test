@@ -2,16 +2,54 @@
 set -Eeuo pipefail
 
 url=${KEA_CONTROL_AGENT_URL:-http://127.0.0.1:8000/}
+startup_timeout=${KEA_STARTUP_TIMEOUT:-30}
+request_timeout=${KEA_REQUEST_TIMEOUT:-10}
 
 request() {
   local command=$1
   local arguments=$2
+  local timeout=${3:-$request_timeout}
 
   curl --fail --silent --show-error \
+    --connect-timeout 2 \
+    --max-time "$timeout" \
     --user kea:kea \
     --header 'Content-Type: application/json' \
     --data "{\"command\":\"$command\",\"arguments\":$arguments,\"service\":[\"dhcp4\"]}" \
     "$url"
+}
+
+check_command_response() {
+  local command=$1
+  local response=$2
+
+  if ! grep -Eq '"result"[[:space:]]*:[[:space:]]*(0|3)([,}]|$)' <<<"$response"; then
+    printf 'FAIL %s: unexpected response: %s\n' "$command" "$response" >&2
+    exit 1
+  fi
+
+  printf 'PASS %s\n' "$command"
+}
+
+wait_for_control_agent() {
+  local command=$1
+  local arguments=$2
+  local deadline=$((SECONDS + startup_timeout))
+  local remaining timeout response
+
+  while (( SECONDS < deadline )); do
+    remaining=$((deadline - SECONDS))
+    timeout=$((remaining < 2 ? remaining : 2))
+    if response=$(request "$command" "$arguments" "$timeout" 2>/dev/null); then
+      check_command_response "$command" "$response"
+      return
+    fi
+    sleep 1
+  done
+
+  printf 'FAIL %s: Control Agent did not respond at %s within %ss\n' \
+    "$command" "$url" "$startup_timeout" >&2
+  exit 1
 }
 
 check_command() {
@@ -19,19 +57,11 @@ check_command() {
   local arguments=$2
   local response
 
-  for attempt in {1..90}; do
-    if response=$(request "$command" "$arguments" 2>/dev/null); then
-      break
-    fi
-    sleep 1
-  done
-
-  if [[ -z "${response:-}" ]] || ! grep -Eq '"result"[[:space:]]*:[[:space:]]*(0|3)' <<<"$response"; then
-    printf 'FAIL %s: %s\n' "$command" "${response:-Control Agent did not become ready}" >&2
+  if ! response=$(request "$command" "$arguments"); then
+    printf 'FAIL %s: request to Control Agent failed at %s\n' "$command" "$url" >&2
     exit 1
   fi
-
-  printf 'PASS %s\n' "$command"
+  check_command_response "$command" "$response"
 }
 
 check_success() {
@@ -48,7 +78,7 @@ check_success() {
   printf 'PASS %s\n' "$command"
 }
 
-check_command reservation-get-all '{"subnet-id":1}'
+wait_for_control_agent reservation-get-all '{"subnet-id":1}'
 check_command lease4-get-all '{"subnets":[1]}'
 
 random_hex=$(od -An -N5 -tx1 /dev/urandom | tr -d ' \n')
