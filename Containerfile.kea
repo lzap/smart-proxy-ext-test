@@ -1,0 +1,19 @@
+FROM quay.io/centos/centos:stream9
+
+RUN dnf -y install ca-certificates curl postgresql postgresql-server \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/isc/kea-3-0/setup.rpm.sh' | bash \
+    && dnf -y install isc-kea-dhcp4 isc-kea-ctrl-agent isc-kea-hooks isc-kea-pgsql isc-kea-admin \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf
+
+COPY kea/kea-dhcp4.conf /etc/kea/kea-dhcp4.conf
+COPY kea/kea-ctrl-agent.conf /etc/kea/kea-ctrl-agent.conf
+COPY kea/entrypoint.sh /usr/local/bin/entrypoint
+
+RUN chmod 0755 /usr/local/bin/entrypoint \
+    && mkdir -p /run/kea /var/lib/kea \
+    && chown -R kea:kea /run/kea /var/lib/kea
+
+EXPOSE 67/udp 8000/tcp
+
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
