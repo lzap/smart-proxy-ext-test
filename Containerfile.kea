@@ -13,6 +13,6 @@ RUN chmod 0755 /usr/local/bin/entrypoint \
     && chmod 0750 /var/run/kea \
     && chown -R kea:kea /var/run/kea /var/lib/kea
 
-EXPOSE 8000/tcp
+EXPOSE 18123/tcp
 
 ENTRYPOINT ["/usr/local/bin/entrypoint"]

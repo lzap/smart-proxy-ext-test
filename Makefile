@@ -11,7 +11,7 @@ start:
 		podman rm --force $(CONTAINER_NAME); \
 	fi
 	podman run --detach --name $(CONTAINER_NAME) \
-		--publish 127.0.0.1:8000:8000/tcp $(IMAGE)
+		--publish 127.0.0.1:18123:18123/tcp $(IMAGE)
 
 stop:
 	podman stop $(CONTAINER_NAME)

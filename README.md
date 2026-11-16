@@ -15,7 +15,7 @@ The DHCPv4 subnet is `192.168.122.0/24`, with a dynamic pool from
 host reservations in a local PostgreSQL database. The `host_cmds`,
 `lease_cmds`, and PostgreSQL hooks are enabled.
 
-The Control Agent listens on TCP port `8000` and uses HTTP Basic authentication
+The Control Agent listens on TCP port `18123` and uses HTTP Basic authentication
 with username `kea` and password `kea`. PostgreSQL is available only inside the
 container and uses the same test credentials.
 
@@ -23,11 +23,11 @@ Build and run the image with rootless Podman:
 
 ```sh
 podman build -t smart-proxy-ext-test-kea -f Containerfile.kea .
-podman run --rm --name kea-test --publish 8000:8000/tcp \
+podman run --rm --name kea-test --publish 18123:18123/tcp \
   smart-proxy-ext-test-kea
 ```
 
-The Control Agent is available at `http://127.0.0.1:8000/`. The DHCPv4 daemon
+The Control Agent is available at `http://127.0.0.1:18123/`. The DHCPv4 daemon
 listens only on the container's loopback interface, and its UDP port is not
 published. It is present to provide the Control Agent API and hook commands.
 

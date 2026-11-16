@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 set -Eeuo pipefail
 
-url=${KEA_CONTROL_AGENT_URL:-http://127.0.0.1:8000/}
+url=${KEA_CONTROL_AGENT_URL:-http://127.0.0.1:18123/}
 startup_timeout=${KEA_STARTUP_TIMEOUT:-30}
 request_timeout=${KEA_REQUEST_TIMEOUT:-10}
 
