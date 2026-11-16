@@ -69,8 +69,19 @@ jobs:
         run: |
           docker run --detach --rm --name "smoke-${{ matrix.name }}" \
             --publish 8000:8000/tcp "$IMAGE"
-          trap 'docker logs "smoke-${{ matrix.name }}" 2>&1 || true; docker stop "smoke-${{ matrix.name }}" >/dev/null 2>&1 || true' EXIT
-          KEA_CONTROL_AGENT_URL=http://127.0.0.1:8000/ "./test.${{ matrix.name }}.sh"
+          trap 'docker stop "smoke-${{ matrix.name }}" >/dev/null 2>&1 || true' EXIT
+          smoke_output="$RUNNER_TEMP/kea-smoke-${{ matrix.name }}.log"
+          if ! KEA_CONTROL_AGENT_URL=http://127.0.0.1:8000/ \
+              "./test.${{ matrix.name }}.sh" > "$smoke_output" 2>&1; then
+            {
+              echo '### Smoke test output'
+              cat "$smoke_output"
+              echo '### Container logs'
+              docker logs "smoke-${{ matrix.name }}" 2>&1 || true
+            } >> "$GITHUB_STEP_SUMMARY"
+            cat "$smoke_output"
+            exit 1
+          fi
       - name: Push image tags
         env:
           IMAGE_TAGS: ${{ steps.metadata.outputs.tags }}

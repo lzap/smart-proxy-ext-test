@@ -19,7 +19,7 @@ check_command() {
   local arguments=$2
   local response
 
-  for attempt in {1..30}; do
+  for attempt in {1..90}; do
     if response=$(request "$command" "$arguments" 2>/dev/null); then
       break
     fi
