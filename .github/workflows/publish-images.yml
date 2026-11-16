@@ -69,7 +69,7 @@ jobs:
         run: |
           docker run --detach --rm --name "smoke-${{ matrix.name }}" \
             --publish 8000:8000/tcp "$IMAGE"
-          trap 'docker stop "smoke-${{ matrix.name }}" >/dev/null 2>&1 || true' EXIT
+          trap 'docker logs "smoke-${{ matrix.name }}" 2>&1 || true; docker stop "smoke-${{ matrix.name }}" >/dev/null 2>&1 || true' EXIT
           KEA_CONTROL_AGENT_URL=http://127.0.0.1:8000/ "./test.${{ matrix.name }}.sh"
       - name: Push image tags
         env:
