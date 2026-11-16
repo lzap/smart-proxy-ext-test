@@ -72,6 +72,7 @@ if [[ "$initialized" == true ]] || \
 fi
 
 install -d -o kea -g kea /var/run/kea
+chmod 0750 /var/run/kea
 /usr/sbin/kea-dhcp4 -c /etc/kea/kea-dhcp4.conf -p 1067 &
 dhcp4_pid=$!
 /usr/sbin/kea-ctrl-agent -c /etc/kea/kea-ctrl-agent.conf &
