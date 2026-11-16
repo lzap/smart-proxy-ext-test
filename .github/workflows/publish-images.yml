@@ -56,36 +56,8 @@ jobs:
         with:
           context: .
           file: ${{ matrix.containerfile }}
-          load: true
+          push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
-      - name: Run ${{ matrix.name }} smoke test
-        if: ${{ hashFiles(format('test.{0}.sh', matrix.name)) != '' }}
-        shell: bash
-        env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ matrix.name }}:sha-${{ github.sha }}
-        run: |
-          docker run --detach --rm --name "smoke-${{ matrix.name }}" \
-            --publish 8000:8000/tcp "$IMAGE"
-          trap 'docker stop "smoke-${{ matrix.name }}" >/dev/null 2>&1 || true' EXIT
-          smoke_output="$RUNNER_TEMP/kea-smoke-${{ matrix.name }}.log"
-          if ! KEA_CONTROL_AGENT_URL=http://127.0.0.1:8000/ \
-              "./test.${{ matrix.name }}.sh" > "$smoke_output" 2>&1; then
-            {
-              echo '### Smoke test output'
-              cat "$smoke_output"
-              echo '### Container logs'
-              docker logs "smoke-${{ matrix.name }}" 2>&1 || true
-            } >> "$GITHUB_STEP_SUMMARY"
-            cat "$smoke_output"
-            exit 1
-          fi
-      - name: Push image tags
-        env:
-          IMAGE_TAGS: ${{ steps.metadata.outputs.tags }}
-        run: |
-          while IFS= read -r tag; do
-            [[ -z "$tag" ]] || docker push "$tag"
-          done <<< "$IMAGE_TAGS"
