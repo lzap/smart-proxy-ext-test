@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+
+require 'English'
+require 'pathname'
+
+def find_project_root
+  configured_root = ENV['PROJECT_ROOT']
+  return File.expand_path(configured_root) if configured_root
+
+  directory = Pathname.new(Dir.pwd).realpath
+  loop do
+    return directory.to_s if File.file?(directory.join('Gemfile')) && File.file?(directory.join('Rakefile'))
+
+    parent = directory.parent
+    return nil if parent == directory
+
+    directory = parent
+  end
+end
+
+project_root = find_project_root
+unless project_root
+  abort 'Run this command from the target project checkout or set PROJECT_ROOT to its path.'
+end
+
+extension_test_root = File.expand_path('..', __dir__)
+ENV['PROJECT_ROOT'] = project_root
+
+rakefile = File.join(extension_test_root, 'Rakefile')
+success = system('bundle', 'exec', 'rake', '--rakefile', rakefile, 'test:integration', chdir: project_root)
+exit(success ? 0 : ($CHILD_STATUS&.exitstatus || 1))

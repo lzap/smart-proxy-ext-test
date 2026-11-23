@@ -9,6 +9,7 @@ module KeaIntegrationTests
 
   IMAGE = 'ghcr.io/lzap/smart-proxy-ext-test-kea:latest'.freeze
   CONTAINER_PORT = 18_123
+  CONTAINER_ENGINE = ENV.fetch('CONTAINER_ENGINE', 'podman')
 
   def run
     image = ENV.fetch('KEA_INTEGRATION_IMAGE', IMAGE)
@@ -20,15 +21,15 @@ module KeaIntegrationTests
 
     begin
       puts "Pulling #{image}"
-      podman!('pull', image)
+      container!('pull', image)
       puts "Starting #{container_name} on #{control_agent_url}"
-      podman!('run', '--detach', '--rm', '--name', container_name,
-              '--publish', "127.0.0.1:#{host_port}:#{CONTAINER_PORT}/tcp", image)
+      container!('run', '--detach', '--rm', '--name', container_name,
+                 '--publish', "127.0.0.1:#{host_port}:#{CONTAINER_PORT}/tcp", image)
       started = true
 
       ENV['KEA_CONTROL_AGENT_URL'] = control_agent_url
       wait_for_kea(control_agent_url)
-      Rake::Task['test:integration:run'].invoke
+      Rake::Task['test:integration:kea:run'].invoke
     ensure
       stop_container(container_name) if started
       restore_control_agent_url(previous_url)
@@ -37,17 +38,17 @@ module KeaIntegrationTests
 
   private
 
-  def podman!(*arguments)
-    return if system('podman', *arguments)
+  def container!(*arguments)
+    return if system(CONTAINER_ENGINE, *arguments)
 
-    raise "podman #{arguments.first} failed"
+    raise "#{CONTAINER_ENGINE} #{arguments.first} failed"
   end
 
   def stop_container(name)
-    return if system('podman', 'stop', '--time', '10', name)
+    return if system(CONTAINER_ENGINE, 'stop', '--time', '10', name)
 
     warn "Unable to stop #{name}; attempting forced cleanup"
-    warn "Unable to remove #{name}" unless system('podman', 'rm', '--force', name)
+    warn "Unable to remove #{name}" unless system(CONTAINER_ENGINE, 'rm', '--force', name)
   end
 
   def available_port
@@ -103,15 +104,20 @@ module KeaIntegrationTests
   end
 end
 
-desc 'Run the Kea integration tests in a temporary Podman container.'
-task 'test:integration' do
+desc 'Run all integration test suites.'
+task 'test:integration' => 'test:integration:kea'
+
+desc 'Run the Kea integration tests in a temporary container.'
+task 'test:integration:kea' do
   KeaIntegrationTests.run
 end
 
-Rake::TestTask.new('test:integration:run') do |t|
-  t.libs << '.'
-  t.libs << File.join(SMART_PROXY_ROOT, 'test')
-  t.test_files = FileList['test/dhcp_kea/kea_server_integration_test.rb']
+Rake::TestTask.new('test:integration:kea:run') do |t|
+  t.libs.concat([PROJECT_ROOT,
+                 File.join(PROJECT_ROOT, 'lib'),
+                 File.join(PROJECT_ROOT, 'modules'),
+                 File.join(PROJECT_ROOT, 'test')])
+  t.test_files = FileList[File.join(EXT_TEST_ROOT, 'test/dhcp_kea/kea_server_integration_test.rb')]
   t.options = '--verbose'
   t.ruby_opts = ['-W1']
 end

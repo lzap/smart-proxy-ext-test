@@ -10,7 +10,7 @@ require 'dhcp_common/free_ips'
 require 'dhcp_kea/kea_api_client'
 require 'dhcp_kea/dhcp_kea_main'
 
-# Run via `rake test:integration`. Set KEA_TEST_SUBNET if the image uses a
+# Run via `bin/test-integration`. Set KEA_TEST_SUBNET if the image uses a
 # different subnet, or override the Control Agent credentials if they change.
 class DhcpKeaServerIntegrationTest < Test::Unit::TestCase
   include Rack::Test::Methods
