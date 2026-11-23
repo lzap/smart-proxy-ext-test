@@ -51,10 +51,10 @@ example, in the Smart Proxy pull request workflow:
 ```
 
 On a `pull_request` workflow, the first checkout contains the PR merge ref by
-default. Pinning the shared test repository keeps the suite version stable for
-each CI run. The Smart Proxy workflow accepts the repository variable
-`SMART_PROXY_EXT_TEST_REF` for that pin; while it is unset, it checks out the
-shared repository's `main` branch.
+default. The Smart Proxy workflow pins this repository to
+`717ba27216a4927f168f4f7937197bddb894c57a` by default. Set the repository
+variable `SMART_PROXY_EXT_TEST_REF` to another tag or commit to test a newer
+suite revision.
 
 The runner supports the following settings:
 
